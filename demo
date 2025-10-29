@@ -1,0 +1,109 @@
+<!-- <!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+     <link rel="icon" type="image/svg+xml" href="/vite.svg" /> 
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>syncspace-frontend</title>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
+</html> -->
+
+
+
+
+for live code 
+
+const express = require('express');
+const mongoose = require('mongoose');
+
+const app = express();
+app.use(express.json());
+
+mongoose.connect('URI STRING')
+.then(() => console.log('MongoDB Connected'))
+.catch(err => console.error(err));
+
+const recipeSchema = new mongoose.Schema({
+    name: { type: String, required: true },
+    location: { type: String, required: true },
+    skilllevel: { type: String, required: true },
+    tags: [String],
+    ingredients: [String]
+});
+
+const Recipe = mongoose.model('Recipe', recipeSchema);
+
+async function seedDatabase() {
+  try {
+    const count = await Recipe.countDocuments();
+    if (count > 0) {
+      console.log('Database already seeded.');
+      return;
+    }
+
+    const recipes = [
+      { name: 'Spaghetti Carbonara', location: 'Italian', skillLevel: 'Medium', tags: ['pasta', 'classic'], ingredients: ['eggs', 'parmesan', 'guanciale', 'pasta'] },
+      { name: 'Chicken Tacos', location: 'Mexican', skillLevel: 'Easy', tags: ['quick', 'spicy'], ingredients: ['chicken', 'tortillas', 'salsa', 'avocado'] },
+      { name: 'Vegan Lentil Soup', location: 'Global', skillLevel: 'Easy', tags: ['vegan', 'healthy', 'soup'], ingredients: ['lentils', 'carrots', 'celery', 'onion'] },
+      { name: 'Beef Bourguignon', location: 'French', skillLevel: 'Hard', tags: ['classic', 'slow-cook'], ingredients: ['beef', 'red wine', 'mushrooms', 'onion'] },
+      { name: 'Quick Vegan Pasta', location: 'Italian', skillLevel: 'Easy', tags: ['vegan', 'quick', 'pasta'], ingredients: ['pasta', 'tomatoes', 'basil', 'garlic'] }
+    ];
+
+    await Recipe.insertMany(recipes);
+    console.log('Database seeded successfully!');
+  } catch (error) {
+    console.error('Error seeding database:', error);
+  }
+}
+
+app.get('/api/recipes'), async ( req, res) => {
+    const queryObj = {};
+    if (req.query.search) {
+        queryObj.name = { $regex: req.query.search, $options: 'i'};
+    }
+
+    if (req.query.location) {
+        queryObj.location = req.query.skilllevel;
+    }
+
+    if (req.query.skillLevel) {
+        queryObj.skillLevel = req.query.skilllevel;
+    }
+
+    if (req.query.tags) {
+        const tagsArray = req.query.tags.split(',');
+        queryObj.tags = { $all: tagsArray };
+    }
+
+    if (req.query.ingredients) {
+        const ingredientsArray = req.query.ingredients.split(',');
+        queryObj.ingredients = { $in: ingredientsArray };
+    }
+
+    console.log('Executing query:', queryObj);
+    const recipes = await Recipe.find(queryObj);
+
+    if (recipes.length === 0) {
+        return res.status(404).json({ message: 'No reciped found matching'});
+    }
+
+    res.json({
+        results: recipes.length,
+        data: recipes
+    });
+
+} catch (error) {
+    res.status(500).json({message: 'Server Error', error: error.message });
+}
+});
+
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+    console.log(`server running on port ${PORT}`);
+    seedDatabase();
+})
+hvh-brkj-axm
