@@ -1,7 +1,7 @@
 import React from 'react';
 import { X, Download, Clock, Eye, FileText } from 'lucide-react';
 import { format } from 'date-fns';
-import '@styles/App.css';
+import '../../styles/App.css';
 
 function FileDetailsModal({ file, onClose, onDownload }) {
   const formatDate = (dateString) => {

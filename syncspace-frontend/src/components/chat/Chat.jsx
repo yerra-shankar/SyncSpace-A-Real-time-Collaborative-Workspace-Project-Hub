@@ -2,10 +2,10 @@ import React, { useState, useEffect, useRef } from 'react';
 import ChatMessage from './ChatMessage';
 import TypingIndicator from './TypingIndicator';
 import { Send, Paperclip, Smile, MoreVertical } from 'lucide-react';
-import socketService from '@socket/socket';
-import api from '@services/api';
+import socketService from '../../socket/socket';
+import api from '../../services/api';
 import { toast } from 'react-toastify';
-import { useApp } from '@context/AppContext';
+import { useApp } from '../../context/AppContext';
 import '../../styles/App.css';
 
 function Chat({ workspaceId }) {

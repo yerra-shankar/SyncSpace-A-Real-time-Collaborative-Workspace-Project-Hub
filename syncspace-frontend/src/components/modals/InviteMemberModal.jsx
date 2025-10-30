@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { X, UserPlus, Mail } from 'lucide-react';
-import api from '@services/api';
+import api from '../../services/api';
 import { toast } from 'react-toastify';
 import '../../styles/App.css';
 

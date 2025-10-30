@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { X, Folder } from 'lucide-react';
-import { useApp } from '@context/AppContext';
+import { useApp } from '../../context/AppContext';
 import '../../styles/App.css';
 
 function CreateWorkspaceModal({ onClose }) {

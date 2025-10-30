@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import FileCard from './FileCard';
 import { Upload, Search, Filter, Grid, List } from 'lucide-react';
-import api from '@services/api';
+import api from '../../services/api';
 import { toast } from 'react-toastify';
 import '../../styles/App.css';
 

@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useApp } from '@context/AppContext';
-import Navbar from '@components/layout/Navbar';
+import { useApp } from '../../context/AppContext';
+import Navbar from '../../components/layout/Navbar';
 import StatsCard from './StatsCard';
 import WorkspaceCard from './WorkspaceCard';
-import CreateWorkspaceModal from '@components/modals/CreateWorkspaceModal';
+import CreateWorkspaceModal from '../../components/modals/CreateWorkspaceModal';
 import {
   Plus,
   Folder,

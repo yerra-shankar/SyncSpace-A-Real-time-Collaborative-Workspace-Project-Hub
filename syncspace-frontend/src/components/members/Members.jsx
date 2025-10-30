@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import MemberCard from './MemberCard';
-import InviteMemberModal from '@components/modals/InviteMemberModal';
+import InviteMemberModal from '../../components/modals/InviteMemberModal';
 import { UserPlus, Search, Filter, Users } from 'lucide-react';
-import api from '@services/api';
+import api from '../../services/api';
 import { toast } from 'react-toastify';
-import { useApp } from '@context/AppContext';
+import { useApp } from '../../context/AppContext';
 import '../../styles/App.css';
 
 function Members({ workspaceId }) {

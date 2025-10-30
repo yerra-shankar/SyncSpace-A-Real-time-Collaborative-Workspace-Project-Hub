@@ -184,7 +184,7 @@ function Login() {
                   </div>
                 </div>
               </form>
-
+              
               {/* Footer */}
               <div className="auth-footer-section">
                 <div className="row">

@@ -3,9 +3,9 @@ import { DragDropContext, Droppable, Draggable } from 'react-beautiful-dnd';
 import { Plus } from 'lucide-react';
 import KanbanColumn from './KanbanColumn';
 import TaskCard from './TaskCard';
-import TaskModal from '@components/modals/TaskModal';
-import api from '@services/api';
-import socketService from '@socket/socket';
+import TaskModal from '../../components/modals/TaskModal';
+import api from '../../services/api';
+import socketService from '../../socket/socket';
 import { toast } from 'react-toastify';
 import '../../styles/App.css';
 

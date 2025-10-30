@@ -2,32 +2,187 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <!-- <link rel="icon" type="image/svg+xml" href="/vite.svg" /> -->
-     <!-- <link rel="manifest" href="/manifest.json" /> -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB" crossorigin="anonymous">
-  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet"/>
     <meta name="description" content="SyncSpace - Real-time collaborative workspace and project management hub" />
-    <meta name="keywords" content="collaboration, workspace, project management, kanban, real-time" />
+    <meta name="keywords" content="collaboration, workspace, project management, kanban, real-time, documents, chat, team" />
     <meta name="author" content="SyncSpace Team" />
     <meta name="theme-color" content="#667eea" />
     
-     <!-- Open Graph / Facebook  -->
+    <!-- Open Graph / Facebook -->
     <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://syncspace.app/" />
     <meta property="og:title" content="SyncSpace - Collaborative Workspace" />
     <meta property="og:description" content="Manage projects, collaborate on documents, and chat with your team in real-time" />
+    <meta property="og:image" content="/og-image.jpg" />
     
-    <!-- Twitter  -->
+    <!-- Twitter -->
     <meta property="twitter:card" content="summary_large_image" />
+    <meta property="twitter:url" content="https://syncspace.app/" />
     <meta property="twitter:title" content="SyncSpace - Collaborative Workspace" />
     <meta property="twitter:description" content="Manage projects, collaborate on documents, and chat with your team in real-time" />
+    <meta property="twitter:image" content="/twitter-image.jpg" />
     
+    <!-- Bootstrap CSS CDN -->
+    <link 
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" 
+      rel="stylesheet" 
+      integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN"
+      crossorigin="anonymous"
+    />
+    <link 
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" 
+      rel="stylesheet"
+    />
     <title>SyncSpace - Collaborative Workspace</title>
   </head>
   <body>
     <div id="root"></div>
-    <script type="module" src="/src/index.jsx"></script>
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.min.js" integrity="sha384-G/EV+4j2dNv+tEPo3++6LCgdCROaejBqfUeNjuKAiuXbjrxilcCdDz6ZAVfHWe1Y" crossorigin="anonymous"></script>
-
+    <script type="module" src="./src/main.jsx"></script>
+    <script 
+      src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js" 
+      integrity="sha384-C6RzsynM9kWDrMNeT87bh95OGNyZPhcTNXj1NW7RuBCsyN/o0jlpcV8Qyq46cDfL" 
+      crossorigin="anonymous"
+    ></script>
+  </body>
+</html>
+     
+    <!-- Bootstrap Icons CDN (Optional - if you want to use Bootstrap Icons) -->
+    <link 
+      rel="stylesheet" 
+      href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css"
+    />
+    
+    <!-- Google Fonts - Inter (Modern, clean font) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link 
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" 
+      rel="stylesheet"
+    />
+    
+    <title>SyncSpace - Collaborative Workspace</title>
+    
+    <style>
+      /* Prevent FOUC (Flash of Unstyled Content) */
+      body {
+        opacity: 0;
+        transition: opacity 0.3s ease-in;
+      }
+      
+      body.loaded {
+        opacity: 1;
+      }
+      
+      /* Loading Spinner */
+      #app-loader {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 9999;
+        transition: opacity 0.3s ease-out;
+      }
+      
+      #app-loader.hidden {
+        opacity: 0;
+        pointer-events: none;
+      }
+      
+      .loader-spinner {
+        width: 50px;
+        height: 50px;
+        border: 4px solid rgba(255, 255, 255, 0.3);
+        border-top-color: #ffffff;
+        border-radius: 50%;
+        animation: spin 0.8s linear infinite;
+      }
+      
+      @keyframes spin {
+        to { transform: rotate(360deg); }
+      }
+      
+      .loader-text {
+        color: white;
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        font-size: 1rem;
+        font-weight: 600;
+        margin-top: 1rem;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- App Loader -->
+    <div id="app-loader">
+      <div class="text-center">
+        <div class="loader-spinner mx-auto"></div>
+        <p class="loader-text">Loading SyncSpace...</p>
+      </div>
+    </div>
+    
+    <!-- Root Element -->
+    <div id="root"></div>
+    
+    <!-- Bootstrap Bundle JS (includes Popper) -->
+    <script 
+      src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js" 
+      integrity="sha384-C6RzsynM9kWDrMNeT87bh95OGNyZPhcTNXj1NW7RuBCsyN/o0jlpcV8Qyq46cDfL" 
+      crossorigin="anonymous"
+    ></script>
+    
+    <!-- Main App Script -->
+    <script type="module" src="/src/main.jsx"></script>
+    
+    <!-- Remove Loader After App Loads -->
+    <script>
+      window.addEventListener('DOMContentLoaded', () => {
+        // Add loaded class to body
+        document.body.classList.add('loaded');
+        
+        // Hide loader after a short delay
+        setTimeout(() => {
+          const loader = document.getElementById('app-loader');
+          if (loader) {
+            loader.classList.add('hidden');
+            setTimeout(() => {
+              loader.remove();
+            }, 300);
+          }
+        }, 500);
+      });
+      
+      // Fallback: Remove loader if it takes too long
+      setTimeout(() => {
+        const loader = document.getElementById('app-loader');
+        if (loader) {
+          loader.classList.add('hidden');
+          setTimeout(() => {
+            loader.remove();
+          }, 300);
+        }
+        document.body.classList.add('loaded');
+      }, 5000);
+    </script>
+    
+    <!-- Service Worker Registration (Optional - for PWA) -->
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker
+            .register('/service-worker.js')
+            .then(registration => {
+              console.log('SW registered: ', registration);
+            })
+            .catch(registrationError => {
+              console.log('SW registration failed: ', registrationError);
+            });
+        });
+      }
+    </script>
   </body>
 </html>

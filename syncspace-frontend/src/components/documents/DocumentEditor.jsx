@@ -4,8 +4,8 @@ import 'react-quill/dist/quill.snow.css';
 import EditorToolbar from './EditorToolbar';
 import RemoteCursor from './RemoteCursor';
 import { UserPlus, CheckCircle, Save } from 'lucide-react';
-import socketService from '@socket/socket';
-import api from '@services/api';
+import socketService from '../../socket/socket';
+import api from '../../services/api';
 import { toast } from 'react-toastify';
 import '../../styles/App.css';
 

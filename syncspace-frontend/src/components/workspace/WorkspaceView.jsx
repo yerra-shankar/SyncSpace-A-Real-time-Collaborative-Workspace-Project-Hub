@@ -1,14 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
-import { useApp } from '@context/AppContext';
-import Navbar from '@components/layout/Navbar';
+import { useApp } from '../../context/AppContext';
+import Navbar from '../../components/layout/Navbar';
 import WorkspaceSidebar from './WorkspaceSidebar';
-import KanbanBoard from '@components/kanban/KanbanBoard';
-import DocumentEditor from '@components/documents/DocumentEditor';
-import Chat from '@components/chat/Chat';
-import FileManager from '@components/files/FileManager';
-import Members from '@components/members/Members';
-import socketService from '@socket/socket';
+import KanbanBoard from '../../components/kanban/KanbanBoard';
+import DocumentEditor from '../../components/documents/DocumentEditor';
+import Chat from '../../components/chat/Chat';
+import FileManager from '../../components/files/FileManager';
+import Members from '../../components/members/Members';
+import socketService from '../../socket/socket';
 import '../../styles/App.css';
 
 function WorkspaceView() {
@@ -80,6 +80,7 @@ function WorkspaceView() {
       </div>
     );
   }
+
 
   return (
     <div className="workspace-view-container">
