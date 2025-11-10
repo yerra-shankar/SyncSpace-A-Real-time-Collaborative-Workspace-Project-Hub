@@ -137,7 +137,7 @@ syncspace-backend/
 
 ⚡ Installation & Setup
 🧱 1. Clone the Repository
-git clone https://github.com/yerra-shankar/syncspace.git
+git clone (https://github.com/yerra-shankar/SyncSpace-A-Real-time-Collaborative-Workspace-Project-Hub.git)
 cd syncspace
 
 🌐 2. Backend Setup
