@@ -1,3 +1,5 @@
+
+
 import React, { useState } from 'react';
 import { Users, Folder, MoreVertical, Edit, Trash2, Settings } from 'lucide-react';
 import '../../styles/App.css';
@@ -13,23 +15,33 @@ function WorkspaceCard({ workspace, onClick }) {
   const handleEdit = (e) => {
     e.stopPropagation();
     setShowMenu(false);
-    // Handle edit
     console.log('Edit workspace:', workspace.id);
   };
 
   const handleDelete = (e) => {
     e.stopPropagation();
     setShowMenu(false);
-    // Handle delete
     console.log('Delete workspace:', workspace.id);
   };
 
   const handleSettings = (e) => {
     e.stopPropagation();
     setShowMenu(false);
-    // Handle settings
     console.log('Workspace settings:', workspace.id);
   };
+
+  // Safe defaults to prevent React errors
+  const memberCount = Array.isArray(workspace.members)
+    ? workspace.members.length
+    : typeof workspace.members === 'number'
+    ? workspace.members
+    : 0;
+
+  const projectCount = Array.isArray(workspace.projects)
+    ? workspace.projects.length
+    : typeof workspace.projects === 'number'
+    ? workspace.projects
+    : 0;
 
   return (
     <div className="workspace-card-container" onClick={onClick}>
@@ -39,7 +51,7 @@ function WorkspaceCard({ workspace, onClick }) {
             <Folder size={24} />
           </div>
         </div>
-        
+
         <div className="workspace-card-menu-wrapper">
           <button
             onClick={handleMenuClick}
@@ -60,7 +72,10 @@ function WorkspaceCard({ workspace, onClick }) {
                 <span>Settings</span>
               </button>
               <div className="workspace-card-dropdown-divider"></div>
-              <button onClick={handleDelete} className="workspace-card-dropdown-item workspace-card-dropdown-item-danger">
+              <button
+                onClick={handleDelete}
+                className="workspace-card-dropdown-item workspace-card-dropdown-item-danger"
+              >
                 <Trash2 size={16} />
                 <span>Delete</span>
               </button>
@@ -70,7 +85,7 @@ function WorkspaceCard({ workspace, onClick }) {
       </div>
 
       <div className="workspace-card-body">
-        <h3 className="workspace-card-title">{workspace.name}</h3>
+        <h3 className="workspace-card-title">{workspace.name || 'Untitled Workspace'}</h3>
         <p className="workspace-card-description">
           {workspace.description || 'No description provided'}
         </p>
@@ -79,11 +94,11 @@ function WorkspaceCard({ workspace, onClick }) {
       <div className="workspace-card-footer">
         <div className="workspace-card-stat">
           <Users size={16} />
-          <span>{workspace.members || 0} members</span>
+          <span>{memberCount} members</span>
         </div>
         <div className="workspace-card-stat">
           <Folder size={16} />
-          <span>{workspace.projects || 0} projects</span>
+          <span>{projectCount} projects</span>
         </div>
       </div>
 

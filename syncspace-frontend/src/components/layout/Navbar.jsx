@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { useApp } from '../../context/AppContext';
 import {
   Search,
@@ -12,7 +12,7 @@ import {
   Menu,
   X
 } from 'lucide-react';
-import '@styles/App.css';
+import '../../styles/App.css';
 
 function Navbar({ onMenuToggle, isSidebarOpen }) {
   const navigate = useNavigate();
@@ -93,7 +93,11 @@ function Navbar({ onMenuToggle, isSidebarOpen }) {
               )}
               
               <div className="navbar-brand-section">
-                <h1 className="navbar-brand-logo mb-0">SyncSpace</h1>
+                <h1 className="navbar-brand-logo mb-0">
+                  <Link to="/" className="navbar-brand-link">
+                  SyncSpace
+                  </Link>
+                </h1>
               </div>
             </div>
           </div>
@@ -121,10 +125,10 @@ function Navbar({ onMenuToggle, isSidebarOpen }) {
                 {/* Theme Toggle */}
                 <button
                   onClick={toggleTheme}
-                  className="navbar-icon-button d-none d-sm-inline-flex"
+                  className="navbar-icon-button d-none d-sm-inline-flex "
                   aria-label="Toggle theme"
                 >
-                  {theme === 'light' ? <Moon size={20} /> : <Sun size={20} />}
+                  {theme === 'light' ? <Moon size={25} /> : <Sun size={20} />}
                 </button>
 
                 {/* Notifications */}
@@ -134,7 +138,7 @@ function Navbar({ onMenuToggle, isSidebarOpen }) {
                     className="navbar-icon-button navbar-notification-button position-relative"
                     aria-label="Notifications"
                   >
-                    <Bell size={20} />
+                    <Bell size={25} />
                     {unreadCount > 0 && (
                       <span className="navbar-notification-badge position-absolute">
                         {unreadCount > 9 ? '9+' : unreadCount}

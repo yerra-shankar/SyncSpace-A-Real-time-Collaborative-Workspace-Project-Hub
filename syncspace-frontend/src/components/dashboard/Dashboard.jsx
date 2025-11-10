@@ -1,3 +1,5 @@
+// syncspace-frontend/src/components/dashboard/Dashboard.jsx
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useApp } from '../../context/AppContext';
@@ -33,31 +35,41 @@ function Dashboard() {
     loadDashboardData();
   }, [workspaces]);
 
-  const loadDashboardData = async () => {
-    setLoading(true);
-    try {
-      // Calculate stats from workspaces
-      const activeWorkspaces = workspaces.length;
-      const totalMembers = workspaces.reduce((sum, ws) => sum + (ws.members || 0), 0);
-      const totalProjects = workspaces.reduce((sum, ws) => sum + (ws.projects || 0), 0);
-      
-      setStats({
-        activeWorkspaces,
-        tasksCompleted: 24, // This would come from API
-        teamMembers: totalMembers,
-        documents: 48, // This would come from API
-        recentActivity: [
-          { id: 1, action: 'Task completed', workspace: 'Product Team', time: '2 hours ago' },
-          { id: 2, action: 'New member added', workspace: 'Marketing', time: '4 hours ago' },
-          { id: 3, action: 'Document updated', workspace: 'Product Team', time: '5 hours ago' },
-        ],
-      });
-    } catch (error) {
-      console.error('Error loading dashboard data:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
+const loadDashboardData = async () => {
+  setLoading(true);
+  try {
+    // Calculate stats from workspaces
+    const activeWorkspaces = workspaces.length;
+    
+    // ✅ Correctly count total members and projects
+    const totalMembers = workspaces.reduce(
+      (sum, ws) => sum + ((ws.members && ws.members.length) || 0),
+      0
+    );
+
+    const totalProjects = workspaces.reduce(
+      (sum, ws) => sum + ((ws.projects && ws.projects.length) || 0),
+      0
+    );
+    
+    setStats({
+      activeWorkspaces,
+      tasksCompleted: 5, // Placeholder (could later come from API)
+      teamMembers: totalMembers,
+      documents: 10, // Placeholder
+      recentActivity: [
+        { id: 1, action: 'Task completed', workspace: 'Product Team', time: '2 hours ago' },
+        { id: 2, action: 'New member added', workspace: 'Marketing', time: '4 hours ago' },
+        { id: 3, action: 'Document updated', workspace: 'Product Team', time: '5 hours ago' },
+      ],
+    });
+  } catch (error) {
+    console.error('Error loading dashboard data:', error);
+  } finally {
+    setLoading(false);
+  }
+};
+
 
   const handleWorkspaceClick = (workspace) => {
     setSelectedWorkspace(workspace);
@@ -187,7 +199,7 @@ function Dashboard() {
               <div className="dashboard-activity-section">
                 <div className="dashboard-section-header">
                   <h3 className="dashboard-section-title">Recent Activity</h3>
-                  <Clock size={18} />
+                  <Clock size={20} />
                 </div>
 
                 <div className="dashboard-activity-list">

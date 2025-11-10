@@ -1,3 +1,5 @@
+// syncspace-frontend/src/components/auth/Register.jsx
+
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useApp } from '../../context/AppContext';
@@ -70,29 +72,49 @@ function Register() {
   };
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
-    
-    if (!validateForm()) {
-      return;
-    }
+  e.preventDefault();
 
-    setLoading(true);
-    setServerError('');
+  if (!validateForm()) return;
 
-    try {
-      const result = await register(formData.name, formData.email, formData.password);
-      
-      if (result.success) {
-        navigate('/dashboard');
-      } else {
-        setServerError(result.error || 'Registration failed. Please try again.');
+  setLoading(true);
+  setServerError('');
+
+  try {
+    const result = await register(
+      formData.name,
+      formData.email,
+      formData.password,
+      formData.confirmPassword
+    );
+
+    if (result.success) {
+      // ✅ Save JWT token for authenticated requests
+      localStorage.setItem('syncspace_token', result.token);
+
+      // ✅ Optionally save user info
+      localStorage.setItem('syncspace_user', JSON.stringify(result.user));
+
+      // ✅ Optional: update global app context if available
+      if (typeof setUser === 'function') {
+        setUser(result.user);
       }
-    } catch (error) {
-      setServerError('An unexpected error occurred. Please try again.');
-    } finally {
-      setLoading(false);
+      if (typeof setToken === 'function') {
+        setToken(result.token);
+      }
+
+      // ✅ Redirect user to dashboard
+      navigate('/dashboard');
+    } else {
+      setServerError(result.error || 'Registration failed. Please try again.');
     }
-  };
+  } catch (error) {
+    console.error('❌ Registration error:', error);
+    setServerError('An unexpected error occurred. Please try again.');
+  } finally {
+    setLoading(false);
+  }
+};
+
 
   const getPasswordStrength = () => {
     const password = formData.password;
@@ -163,7 +185,7 @@ function Register() {
                         type="text"
                         value={formData.name}
                         onChange={handleChange}
-                        placeholder="John Doe"
+                        placeholder="Shankar Yerra"
                         className={`form-input-field ${errors.name ? 'form-input-error' : ''}`}
                         disabled={loading}
                       />
@@ -187,7 +209,7 @@ function Register() {
                         type="email"
                         value={formData.email}
                         onChange={handleChange}
-                        placeholder="john@example.com"
+                        placeholder="Shankar@example.com"
                         className={`form-input-field ${errors.email ? 'form-input-error' : ''}`}
                         disabled={loading}
                       />

@@ -1,8 +1,11 @@
+
+
+// src/components/kanban/KanbanBoard.jsx
+
 import React, { useState, useEffect } from 'react';
-import { DragDropContext, Droppable, Draggable } from 'react-beautiful-dnd';
+import { DragDropContext } from 'react-beautiful-dnd';
 import { Plus } from 'lucide-react';
 import KanbanColumn from './KanbanColumn';
-import TaskCard from './TaskCard';
 import TaskModal from '../../components/modals/TaskModal';
 import api from '../../services/api';
 import socketService from '../../socket/socket';
@@ -10,92 +13,116 @@ import { toast } from 'react-toastify';
 import '../../styles/App.css';
 
 function KanbanBoard({ workspaceId }) {
-  const [tasks, setTasks] = useState({
-    todo: [],
-    inProgress: [],
-    done: []
-  });
+  const [tasks, setTasks] = useState({ todo: [], inProgress: [], done: [] });
   const [showTaskModal, setShowTaskModal] = useState(false);
   const [selectedTask, setSelectedTask] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [projectId, setProjectId] = useState(null);
 
   useEffect(() => {
-    loadTasks();
-    subscribeToTaskUpdates();
-
-    return () => {
-      socketService.unsubscribeFromTaskUpdates();
-    };
+    if (workspaceId) {
+      initializeBoard();
+      subscribeToTaskUpdates();
+    }
+    return () => socketService.unsubscribeFromTaskUpdates();
   }, [workspaceId]);
 
-  const loadTasks = async () => {
+  // ===================== INITIALIZE BOARD =====================
+  const initializeBoard = async () => {
     setLoading(true);
     try {
-      const projectId = 1; // This should come from workspace context
-      const tasksData = await api.tasks.getByProject(projectId);
-      setTasks(tasksData);
+      console.log("🧩 Loading projects for workspace:", workspaceId);
+
+      const projects = await api.projects.getByWorkspace(workspaceId);
+
+      if (!projects || projects.length === 0) {
+        toast.info('No projects found in this workspace');
+        setTasks({ todo: [], inProgress: [], done: [] });
+        setLoading(false);
+        return;
+      }
+
+      // ✅ Always use _id or id safely
+      const firstProject = projects[0];
+      const validId = firstProject._id || firstProject.id;
+
+      if (!validId || validId.length !== 24) {
+        console.error("❌ Invalid project ID received:", validId, firstProject);
+        toast.error("Invalid project ID from backend. Please check workspaceController.");
+        setTasks({ todo: [], inProgress: [], done: [] });
+        setLoading(false);
+        return;
+      }
+
+      console.log("✅ Using Project ID:", validId, " | Project Name:", firstProject.name);
+
+      setProjectId(validId);
+      await loadTasks(validId);
+
     } catch (error) {
-      console.error('Error loading tasks:', error);
-      toast.error('Failed to load tasks');
+      console.error('❌ Error initializing board:', error);
+      toast.error('Failed to load workspace projects');
     } finally {
       setLoading(false);
     }
   };
 
+  // ===================== LOAD TASKS =====================
+  const loadTasks = async (projId) => {
+    try {
+      console.log("📂 Loading tasks for project:", projId);
+      const tasksData = await api.tasks.getByProject(projId);
+      setTasks(tasksData || { todo: [], inProgress: [], done: [] });
+      console.log("✅ Tasks loaded:", tasksData);
+    } catch (error) {
+      console.error('❌ Error loading tasks:', error);
+      toast.error('Failed to load tasks');
+    }
+  };
+
+  // ===================== SOCKET UPDATES =====================
   const subscribeToTaskUpdates = () => {
-    socketService.subscribeToTaskUpdates((data) => {
-      // Handle real-time task updates
-      loadTasks();
+    socketService.subscribeToTaskUpdates(() => {
+      if (projectId) loadTasks(projectId);
     });
   };
 
+  // ===================== DRAG AND DROP =====================
   const handleDragEnd = async (result) => {
     const { source, destination, draggableId } = result;
-
-    // Dropped outside the list
     if (!destination) return;
+    if (source.droppableId === destination.droppableId && source.index === destination.index) return;
 
-    // Dropped in the same position
-    if (
-      source.droppableId === destination.droppableId &&
-      source.index === destination.index
-    ) {
-      return;
-    }
+    const sourceCol = source.droppableId;
+    const destCol = destination.droppableId;
 
-    const sourceColumn = source.droppableId;
-    const destColumn = destination.droppableId;
-
-    // Create new tasks object
     const newTasks = { ...tasks };
-    const sourceItems = Array.from(newTasks[sourceColumn]);
-    const destItems = sourceColumn === destColumn ? sourceItems : Array.from(newTasks[destColumn]);
+    const sourceItems = Array.from(newTasks[sourceCol]);
+    const destItems = Array.from(newTasks[destCol]);
 
-    // Remove from source
     const [movedTask] = sourceItems.splice(source.index, 1);
-
-    // Add to destination
     destItems.splice(destination.index, 0, movedTask);
 
-    // Update state
-    newTasks[sourceColumn] = sourceItems;
-    newTasks[destColumn] = destItems;
+    newTasks[sourceCol] = sourceItems;
+    newTasks[destCol] = destItems;
     setTasks(newTasks);
 
-    // Update backend
     try {
-      await api.tasks.move(draggableId, destColumn);
-      socketService.emitTaskMove(draggableId, sourceColumn, destColumn);
-      toast.success('Task moved successfully');
+      await api.tasks.move(draggableId, destCol);
+      socketService.emitTaskMove(draggableId, sourceCol, destCol);
     } catch (error) {
-      console.error('Error moving task:', error);
+      console.error('❌ Error moving task:', error);
       toast.error('Failed to move task');
-      // Revert on error
-      loadTasks();
+      loadTasks(projectId);
     }
   };
 
+  // ===================== MODALS =====================
   const handleCreateTask = () => {
+    if (!projectId) {
+      toast.warn('Project not ready yet. Please wait a moment.');
+      return;
+    }
     setSelectedTask(null);
     setShowTaskModal(true);
   };
@@ -111,10 +138,11 @@ function KanbanBoard({ workspaceId }) {
   };
 
   const handleTaskSaved = () => {
-    loadTasks();
+    if (projectId) loadTasks(projectId);
     handleCloseModal();
   };
 
+  // ===================== LOADING STATE =====================
   if (loading) {
     return (
       <div className="kanban-loading-wrapper">
@@ -124,63 +152,30 @@ function KanbanBoard({ workspaceId }) {
     );
   }
 
+  // ===================== RENDER =====================
   return (
     <div className="kanban-board-wrapper">
       <div className="kanban-board-header">
         <div>
           <h2 className="kanban-board-title">Project Board</h2>
-          <p className="kanban-board-subtitle">Manage your tasks with drag and drop</p>
+          <p className="kanban-board-subtitle">Manage your tasks with drag & drop</p>
         </div>
         <button onClick={handleCreateTask} className="kanban-create-task-btn">
           <Plus size={20} />
-          <span className="d-none d-sm-inline">Add Task</span>
+          <span>Add Task</span>
         </button>
       </div>
 
       <DragDropContext onDragEnd={handleDragEnd}>
         <div className="row g-3 kanban-columns-container">
-          {/* To Do Column */}
-          <div className="col-12 col-lg-4">
-            <KanbanColumn
-              columnId="todo"
-              title="To Do"
-              tasks={tasks.todo}
-              count={tasks.todo.length}
-              onEditTask={handleEditTask}
-            />
-          </div>
-
-          {/* In Progress Column */}
-          <div className="col-12 col-lg-4">
-            <KanbanColumn
-              columnId="inProgress"
-              title="In Progress"
-              tasks={tasks.inProgress}
-              count={tasks.inProgress.length}
-              onEditTask={handleEditTask}
-            />
-          </div>
-
-          {/* Done Column */}
-          <div className="col-12 col-lg-4">
-            <KanbanColumn
-              columnId="done"
-              title="Done"
-              tasks={tasks.done}
-              count={tasks.done.length}
-              onEditTask={handleEditTask}
-            />
-          </div>
+          <KanbanColumn columnId="todo" title="To Do" tasks={tasks.todo} count={tasks.todo.length} onEditTask={handleEditTask} />
+          <KanbanColumn columnId="inProgress" title="In Progress" tasks={tasks.inProgress} count={tasks.inProgress.length} onEditTask={handleEditTask} />
+          <KanbanColumn columnId="done" title="Done" tasks={tasks.done} count={tasks.done.length} onEditTask={handleEditTask} />
         </div>
       </DragDropContext>
 
-      {/* Task Modal */}
       {showTaskModal && (
-        <TaskModal
-          task={selectedTask}
-          onClose={handleCloseModal}
-          onSave={handleTaskSaved}
-        />
+        <TaskModal task={selectedTask} onClose={handleCloseModal} onSave={handleTaskSaved} projectId={projectId} />
       )}
     </div>
   );

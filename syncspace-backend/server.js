@@ -1,35 +1,138 @@
-import express from "express";
-import dotenv from "dotenv";
-import mongoose from "mongoose";
-import cors from "cors";
-import authRoutes from "./routes/authRoutes.js";
-import connectDB from "./config/db.js";
+// /**
+//  * SyncSpace Backend - Main Server Entry Point
+//  * Initializes Express app and Socket.IO server
+//  */
+
+// const dotenv = require('dotenv');
+// const http = require('http');
+// const { Server } = require('socket.io');
+
+// // Load environment variables
+// dotenv.config();
+
+// // Import app
+// const app = require('./src/app');
+
+// // Import database connection
+// const connectDatabase = require('./src/config/database');
+
+// // Import socket configuration
+// const initializeSocket = require('./src/config/socket');
+
+// // Connect to database
+// connectDatabase();
+
+// // Create HTTP server
+// const server = http.createServer(app);
+
+// // Initialize Socket.IO
+// const io = initializeSocket(server);
+
+// // Make io accessible to routes
+// app.set('io', io);
+
+// // Define PORT
+// const PORT = process.env.PORT || 5000;
+
+// // Start server
+// server.listen(PORT, () => {
+//   console.log(`🚀 Server running in ${process.env.NODE_ENV} mode on port ${PORT}`);
+//   console.log(`📡 Socket.IO server is ready for real-time connections`);
+// });
+
+// // Handle unhandled promise rejections
+// process.on('unhandledRejection', (err) => {
+//   console.error('❌ Unhandled Rejection:', err.message);
+//   // Close server & exit process
+//   server.close(() => {
+//     process.exit(1);
+//   });
+// });
+
+// // Handle uncaught exceptions
+// process.on('uncaughtException', (err) => {
+//   console.error('❌ Uncaught Exception:', err.message);
+//   process.exit(1);
+// });
+
+// // Graceful shutdown
+// process.on('SIGTERM', () => {
+//   console.log('👋 SIGTERM received. Shutting down gracefully...');
+//   server.close(() => {
+//     console.log('✅ Process terminated');
+//   });
+// });
+
+// module.exports = server;
+
+//serve.js
+/**
+ * SyncSpace Backend - Main Server Entry Point
+ * Initializes Express app, MongoDB, and Socket.IO
+ */
+
+const dotenv = require('dotenv');
+const http = require('http');
+const { Server } = require('socket.io');
+
+// Load environment variables
 dotenv.config();
-const app = express();
 
-// Middleware
-app.use(express.json());
-app.use(cors());
+// Import modules
+const app = require('./src/app');
+const connectDatabase = require('./src/config/database');
+const initializeSocket = require('./src/config/socket');
 
-// Routes
-app.use("/api/auth", authRoutes);
+// Connect to MongoDB
+(async () => {
+  try {
+    await connectDatabase();
+    console.log('✅ MongoDB connected successfully');
+  } catch (err) {
+    console.error('❌ MongoDB connection failed:', err.message);
+    process.exit(1);
+  }
+})();
 
-// MongoDB connection
-mongoose.connect(process.env.MONGO_URI, {
-  useNewUrlParser: true,
-  useUnifiedTopology: true,
-})
-.then(() => console.log("✅ MongoDB Connected"))
-.catch((err) => console.error("❌ MongoDB Connection Failed:", err.message));
+// Create HTTP server
+const server = http.createServer(app);
 
-//connect to MongoDb
-connectDB();
+// Initialize Socket.IO
+const io = initializeSocket(server);
 
-// Default route
-app.get("/", (req, res) => {
-  res.send("SyncSpace Backend is running 🚀");
-});
+// Make io accessible to routes
+app.set('io', io);
+
+// Define PORT and NODE_ENV
+const PORT = process.env.PORT || 5000;
+const NODE_ENV = process.env.NODE_ENV || 'development';
 
 // Start server
-const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
+server.listen(PORT, () => {
+  console.log(`🚀 Server running in ${NODE_ENV} mode on port ${PORT}`);
+  console.log(`📡 Socket.IO server is ready for real-time connections`);
+});
+
+// ====================== ERROR HANDLERS ======================
+
+// Handle unhandled promise rejections
+process.on('unhandledRejection', (err) => {
+  console.error('❌ Unhandled Rejection:', err.message);
+  server.close(() => process.exit(1));
+});
+
+// Handle uncaught exceptions
+process.on('uncaughtException', (err) => {
+  console.error('❌ Uncaught Exception:', err.message);
+  process.exit(1);
+});
+
+// Graceful shutdown
+process.on('SIGTERM', () => {
+  console.log('👋 SIGTERM received. Shutting down gracefully...');
+  server.close(() => {
+    console.log('✅ Server closed. Process terminated.');
+  });
+});
+
+module.exports = server;

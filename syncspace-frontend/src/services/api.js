@@ -1,561 +1,430 @@
-import axios from 'axios';
 
-// Create axios instance with base configuration
+//api.js
+
+import axios from "axios";
+
+// ==================== BASE CONFIG ====================
 const apiClient = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api',
+  baseURL: import.meta.env.VITE_API_BASE_URL || "http://localhost:5000/api",
   timeout: 10000,
   headers: {
-    'Content-Type': 'application/json',
+    "Content-Type": "application/json",
   },
 });
 
-// Request interceptor - Add auth token to requests
+// ==================== INTERCEPTORS ====================
 apiClient.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('syncspace_token');
+    const token = localStorage.getItem("syncspace_token");
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
     return config;
   },
-  (error) => {
-    return Promise.reject(error);
-  }
+  (error) => Promise.reject(error)
 );
 
-// Response interceptor - Handle errors globally
 apiClient.interceptors.response.use(
-  (response) => {
-    return response.data;
-  },
+  (response) => response.data,
   (error) => {
     if (error.response) {
-      // Server responded with error status
       const { status, data } = error.response;
-      
-      if (status === 401) {
-        // Only clear token if not on login page
-        if (!window.location.pathname.includes('/login')) {
-          localStorage.removeItem('syncspace_token');
-          window.location.href = '/login';
-        }
+
+      if (status === 401 && !window.location.pathname.includes("/login")) {
+        localStorage.removeItem("syncspace_token");
+        window.location.href = "/login";
       } else if (status === 403) {
-        // Forbidden
-        console.error('Access denied:', data.message);
+        console.error("Access denied:", data.message);
       } else if (status === 404) {
-        // Not found
-        console.error('Resource not found:', data.message);
+        console.error("Resource not found:", data.message);
       } else if (status >= 500) {
-        // Server error
-        console.error('Server error:', data.message);
+        console.error("Server error:", data.message);
       }
     } else if (error.request) {
-      // Request was made but no response received
-      console.error('Network error: No response from server');
+      console.error("Network error: No response from server");
     } else {
-      // Something else happened
-      console.error('Error:', error.message);
+      console.error("Error:", error.message);
     }
-    
+
     return Promise.reject(error);
   }
 );
 
-// API Service Object
+// ==================== API OBJECT ====================
 const api = {
-  // ==================== AUTH API ====================
+  get: apiClient.get.bind(apiClient),
+  post: apiClient.post.bind(apiClient),
+  put: apiClient.put.bind(apiClient),
+  patch: apiClient.patch.bind(apiClient),
+  delete: apiClient.delete.bind(apiClient),
+
+  // ==================== AUTH ====================
   auth: {
-    // Login user
     login: async (email, password) => {
       try {
-        const response = await apiClient.post('/auth/login', { email, password });
-        if (response.token && response.user) {
-          return {
-            success: true,
-            token: response.token,
-            user: response.user
-          };
+        const res = await apiClient.post("/auth/login", { email, password });
+        if (res && res.token && res.user) {
+          return { success: true, token: res.token, user: res.user };
         }
-        return {
-          success: false,
-          error: response.message || 'Login failed. Please try again.'
-        };
+        return { success: false, error: res?.message || "Login failed" };
       } catch (error) {
         return {
           success: false,
-          error: error.response?.data?.message || 'Login failed. Please try again.'
+          error: error.response?.data?.message || "Login failed",
         };
       }
     },
 
-    // Register new user
-    register: async (name, email, password) => {
+    register: async (name, email, password, confirmPassword) => {
       try {
-        const response = await apiClient.post('/auth/register', { name, email, password });
-        return response;
+        const res = await apiClient.post("/auth/register", {
+          name,
+          email,
+          password,
+          confirmPassword,
+        });
+        if (res && res.token && res.user) {
+          return { success: true, token: res.token, user: res.user };
+        } else {
+          return { success: false, error: res?.message || "Registration failed" };
+        }
       } catch (error) {
-        throw error;
+        console.error("❌ Register API Error:", error);
+        return {
+          success: false,
+          error: error.response?.data?.message || "Registration failed",
+        };
       }
     },
 
-    // Logout user
     logout: async () => {
       try {
-        const response = await apiClient.post('/auth/logout');
-        return response;
+        return await apiClient.post("/auth/logout");
       } catch (error) {
         throw error;
       }
     },
 
-    // Validate token
-    validateToken: async () => {
-      try {
-        const response = await apiClient.get('/auth/validate');
-        return response;
-      } catch (error) {
-        throw error;
-      }
-    },
-
-    // Forgot password
-    forgotPassword: async (email) => {
-      try {
-        const response = await apiClient.post('/auth/forgot-password', { email });
-        return response;
-      } catch (error) {
-        throw error;
-      }
-    },
-
-    // Reset password
-    resetPassword: async (token, newPassword) => {
-      try {
-        const response = await apiClient.post('/auth/reset-password', { token, newPassword });
-        return response;
-      } catch (error) {
-        throw error;
-      }
-    },
+    validateToken: async () => apiClient.get("/auth/validate"),
+    forgotPassword: async (email) =>
+      apiClient.post("/auth/forgot-password", { email }),
+    resetPassword: async (token, newPassword) =>
+      apiClient.post(`/auth/reset-password/${token}`, { password: newPassword }),
   },
 
-  // ==================== WORKSPACE API ====================
+  // ==================== WORKSPACES ====================
   workspaces: {
-    // Get all workspaces
     getAll: async () => {
-      try {
-        const response = await apiClient.get('/workspaces');
-        return response.workspaces || [];
-      } catch (error) {
-        throw error;
-      }
+      const res = await apiClient.get("/workspaces");
+      return res.workspaces || [];
     },
 
-    // Get workspace by ID
     getById: async (workspaceId) => {
-      try {
-        const response = await apiClient.get(`/workspaces/${workspaceId}`);
-        return response.workspace;
-      } catch (error) {
-        throw error;
-      }
+      const res = await apiClient.get(`/workspaces/${workspaceId}`);
+      return res.workspace;
     },
 
-    // Create new workspace
-    create: async (workspaceData) => {
-      try {
-        const response = await apiClient.post('/workspaces', workspaceData);
-        return response;
-      } catch (error) {
-        throw error;
-      }
-    },
-
-    // Update workspace
-    update: async (workspaceId, workspaceData) => {
-      try {
-        const response = await apiClient.put(`/workspaces/${workspaceId}`, workspaceData);
-        return response;
-      } catch (error) {
-        throw error;
-      }
-    },
-
-    // Delete workspace
-    delete: async (workspaceId) => {
-      try {
-        const response = await apiClient.delete(`/workspaces/${workspaceId}`);
-        return response;
-      } catch (error) {
-        throw error;
-      }
-    },
+    create: async (data) => apiClient.post("/workspaces", data),
+    update: async (id, data) => apiClient.put(`/workspaces/${id}`, data),
+    delete: async (id) => apiClient.delete(`/workspaces/${id}`),
   },
 
-  // ==================== PROJECT API ====================
+  // ==================== PROJECTS ====================
   projects: {
-    // Get projects by workspace
     getByWorkspace: async (workspaceId) => {
       try {
-        const response = await apiClient.get(`/workspaces/${workspaceId}/projects`);
-        return response.projects || [];
+        const res = await apiClient.get(`/workspaces/${workspaceId}/projects`);
+        return res.projects || [];
       } catch (error) {
+        console.error("❌ Failed to fetch workspace projects:", error);
         throw error;
       }
     },
 
-    // Get project by ID
     getById: async (projectId) => {
-      try {
-        const response = await apiClient.get(`/projects/${projectId}`);
-        return response.project;
-      } catch (error) {
-        throw error;
-      }
+      const res = await apiClient.get(`/projects/${projectId}`);
+      return res.project;
     },
 
-    // Create new project
-    create: async (workspaceId, projectData) => {
-      try {
-        const response = await apiClient.post(`/workspaces/${workspaceId}/projects`, projectData);
-        return response;
-      } catch (error) {
-        throw error;
-      }
-    },
+    create: async (workspaceId, data) =>
+      apiClient.post(`/workspaces/${workspaceId}/projects`, data),
 
-    // Update project
-    update: async (projectId, projectData) => {
-      try {
-        const response = await apiClient.put(`/projects/${projectId}`, projectData);
-        return response;
-      } catch (error) {
-        throw error;
-      }
-    },
+    update: async (projectId, data) =>
+      apiClient.put(`/projects/${projectId}`, data),
 
-    // Delete project
-    delete: async (projectId) => {
-      try {
-        const response = await apiClient.delete(`/projects/${projectId}`);
-        return response;
-      } catch (error) {
-        throw error;
-      }
-    },
+    delete: async (projectId) => apiClient.delete(`/projects/${projectId}`),
   },
 
-  // ==================== TASK API ====================
+  // ==================== TASKS ====================
   tasks: {
-    // Get all tasks by project
-    getByProject: async (projectId) => {
-      try {
-        const response = await apiClient.get(`/projects/${projectId}/tasks`);
-        return response.tasks || { todo: [], inProgress: [], done: [] };
-      } catch (error) {
-        throw error;
-      }
-    },
+    getByWorkspace: async (workspaceId) => {
+  try {
+    if (!workspaceId || workspaceId.length !== 24) {
+      console.warn("⚠️ Invalid workspaceId:", workspaceId);
+      return [];
+    }
 
-    // Get task by ID
+    const res = await apiClient.get(`/workspaces/${workspaceId}/projects`);
+    if (!res || !res.projects) {
+      console.warn("⚠️ No projects returned from backend:", res);
+      return [];
+    }
+
+    console.log("📦 Projects fetched:", res.projects);
+    return res.projects;
+  } catch (error) {
+    console.error("❌ Failed to fetch workspace projects:", error);
+    throw error;
+  }
+},
+
     getById: async (taskId) => {
-      try {
-        const response = await apiClient.get(`/tasks/${taskId}`);
-        return response.task;
-      } catch (error) {
-        throw error;
-      }
+      const res = await apiClient.get(`/tasks/${taskId}`);
+      return res.task;
     },
 
-    // Create new task
-    create: async (projectId, taskData) => {
-      try {
-        const response = await apiClient.post(`/projects/${projectId}/tasks`, taskData);
-        return response;
-      } catch (error) {
-        throw error;
+    create: async (projectId, data) => {
+      if (!projectId || projectId.length !== 24) {
+        return {
+          success: false,
+          message: "Invalid project ID. Must be a 24-character string.",
+        };
       }
+      return await apiClient.post(`/projects/${projectId}/tasks`, data);
     },
 
-    // Update task
-    update: async (taskId, taskData) => {
-      try {
-        const response = await apiClient.put(`/tasks/${taskId}`, taskData);
-        return response;
-      } catch (error) {
-        throw error;
-      }
-    },
+    update: async (taskId, data) =>
+      apiClient.put(`/tasks/${taskId}`, data),
 
-    // Move task to different column
-    move: async (taskId, newStatus) => {
-      try {
-        const response = await apiClient.patch(`/tasks/${taskId}/move`, { status: newStatus });
-        return response;
-      } catch (error) {
-        throw error;
-      }
-    },
+    move: async (taskId, newStatus) =>
+      apiClient.patch(`/tasks/${taskId}/move`, { status: newStatus }),
 
-    // Delete task
-    delete: async (taskId) => {
-      try {
-        const response = await apiClient.delete(`/tasks/${taskId}`);
-        return response;
-      } catch (error) {
-        throw error;
-      }
-    },
+    delete: async (taskId) => apiClient.delete(`/tasks/${taskId}`),
   },
 
-  // ==================== DOCUMENT API ====================
+
+// ==================== TASKS ====================
+// tasks: {
+//   /**
+//    * ✅ Get all tasks for a specific project (used in KanbanBoard)
+//    */
+//   getByProject: async (projectId) => {
+//     try {
+//       if (!projectId || projectId.length !== 24) {
+//         console.warn("⚠️ Invalid projectId:", projectId);
+//         return {
+//           success: false,
+//           message: "Invalid project ID. Must be a 24-character string.",
+//         };
+//       }
+
+//       const res = await apiClient.get(`/projects/${projectId}/tasks`);
+
+//       // If backend response has grouped tasks (todo, inProgress, done)
+//       if (res && res.tasks) {
+//         console.log("📋 Tasks loaded for project:", projectId, res.tasks);
+//         return {
+//           success: true,
+//           tasks: res.tasks,
+//         };
+//       }
+
+//       // Fallback: empty board structure
+//       console.warn("⚠️ No tasks found for project:", projectId);
+//       return {
+//         success: true,
+//         tasks: { todo: [], inProgress: [], done: [] },
+//       };
+//     } catch (error) {
+//       console.error("❌ Failed to fetch project tasks:", error);
+//       return {
+//         success: false,
+//         message: error.response?.data?.message || "Failed to fetch tasks",
+//       };
+//     }
+//   },
+
+//   /**
+//    * ✅ Create a new task under a specific project
+//    */
+//   create: async (projectId, data) => {
+//     try {
+//       if (!projectId || projectId.length !== 24) {
+//         return {
+//           success: false,
+//           message: "Invalid project ID. Must be a 24-character string.",
+//         };
+//       }
+
+//       const res = await apiClient.post(`/projects/${projectId}/tasks`, data);
+//       return {
+//         success: true,
+//         task: res.task,
+//         message: res.message || "Task created successfully",
+//       };
+//     } catch (error) {
+//       console.error("❌ Task creation failed:", error);
+//       return {
+//         success: false,
+//         message:
+//           error.response?.data?.message ||
+//           "Server error while creating task.",
+//       };
+//     }
+//   },
+
+//   /**
+//    * ✅ Update an existing task
+//    */
+//   update: async (taskId, data) => {
+//     try {
+//       const res = await apiClient.put(`/tasks/${taskId}`, data);
+//       return { success: true, task: res.task };
+//     } catch (error) {
+//       console.error("❌ Task update failed:", error);
+//       return {
+//         success: false,
+//         message: error.response?.data?.message || "Failed to update task",
+//       };
+//     }
+//   },
+
+//   /**
+//    * ✅ Move a task (Kanban column change)
+//    */
+//   move: async (taskId, newStatus) => {
+//     try {
+//       const res = await apiClient.patch(`/tasks/${taskId}/move`, {
+//         status: newStatus,
+//       });
+//       return { success: true, task: res.task };
+//     } catch (error) {
+//       console.error("❌ Task move failed:", error);
+//       return {
+//         success: false,
+//         message: error.response?.data?.message || "Failed to move task",
+//       };
+//     }
+//   },
+
+//   /**
+//    * ✅ Delete a task
+//    */
+//   delete: async (taskId) => {
+//     try {
+//       const res = await apiClient.delete(`/tasks/${taskId}`);
+//       return { success: true, message: res.message || "Task deleted" };
+//     } catch (error) {
+//       console.error("❌ Task delete failed:", error);
+//       return {
+//         success: false,
+//         message: error.response?.data?.message || "Failed to delete task",
+//       };
+//     }
+//   },
+// },
+
+
+  // ==================== DOCUMENTS ====================
   documents: {
-    // Get documents by workspace
     getByWorkspace: async (workspaceId) => {
-      try {
-        const response = await apiClient.get(`/workspaces/${workspaceId}/documents`);
-        return response.documents || [];
-      } catch (error) {
-        throw error;
-      }
+      const res = await apiClient.get(`/workspaces/${workspaceId}/documents`);
+      return res.documents || [];
     },
 
-    // Get document by ID
     getById: async (documentId) => {
-      try {
-        const response = await apiClient.get(`/documents/${documentId}`);
-        return response.document;
-      } catch (error) {
-        throw error;
-      }
+      const res = await apiClient.get(`/documents/${documentId}`);
+      return res.document;
     },
 
-    // Create new document
-    create: async (workspaceId, documentData) => {
-      try {
-        const response = await apiClient.post(`/workspaces/${workspaceId}/documents`, documentData);
-        return response;
-      } catch (error) {
-        throw error;
-      }
-    },
+    create: async (workspaceId, data) =>
+      apiClient.post(`/workspaces/${workspaceId}/documents`, data),
 
-    // Update document
-    update: async (documentId, documentData) => {
-      try {
-        const response = await apiClient.put(`/documents/${documentId}`, documentData);
-        return response;
-      } catch (error) {
-        throw error;
-      }
-    },
+    update: async (documentId, data) =>
+      apiClient.put(`/documents/${documentId}`, data),
 
-    // Delete document
-    delete: async (documentId) => {
-      try {
-        const response = await apiClient.delete(`/documents/${documentId}`);
-        return response;
-      } catch (error) {
-        throw error;
-      }
-    },
+    delete: async (documentId) =>
+      apiClient.delete(`/documents/${documentId}`),
   },
 
-  // ==================== CHAT API ====================
+  // ==================== CHAT ====================
   chat: {
-    // Get chat messages by workspace
     getMessages: async (workspaceId, limit = 50, offset = 0) => {
-      try {
-        const response = await apiClient.get(`/workspaces/${workspaceId}/messages`, {
-          params: { limit, offset }
-        });
-        return response.messages || [];
-      } catch (error) {
-        throw error;
-      }
+      const res = await apiClient.get(`/workspaces/${workspaceId}/messages`, {
+        params: { limit, offset },
+      });
+      return res.messages || [];
     },
 
-    // Send chat message
-    sendMessage: async (workspaceId, messageData) => {
-      try {
-        const response = await apiClient.post(`/workspaces/${workspaceId}/messages`, messageData);
-        return response;
-      } catch (error) {
-        throw error;
-      }
-    },
+    sendMessage: async (workspaceId, data) =>
+      apiClient.post(`/workspaces/${workspaceId}/messages`, data),
 
-    // Delete message
-    deleteMessage: async (messageId) => {
-      try {
-        const response = await apiClient.delete(`/messages/${messageId}`);
-        return response;
-      } catch (error) {
-        throw error;
-      }
-    },
+    deleteMessage: async (messageId) =>
+      apiClient.delete(`/messages/${messageId}`),
   },
 
-  // ==================== FILE API ====================
+  // ==================== FILES ====================
   files: {
-    // Get files by workspace
     getByWorkspace: async (workspaceId) => {
-      try {
-        const response = await apiClient.get(`/workspaces/${workspaceId}/files`);
-        return response.files || [];
-      } catch (error) {
-        throw error;
-      }
+      const res = await apiClient.get(`/workspaces/${workspaceId}/files`);
+      return res.files || [];
     },
 
-    // Get file by ID
-    getById: async (fileId) => {
-      try {
-        const response = await apiClient.get(`/files/${fileId}`);
-        return response.file;
-      } catch (error) {
-        throw error;
-      }
-    },
+    upload: async (workspaceId, formData, onUploadProgress) =>
+      apiClient.post(`/workspaces/${workspaceId}/files/upload`, formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+        onUploadProgress: (event) => {
+          if (onUploadProgress) {
+            const percent = Math.round((event.loaded * 100) / event.total);
+            onUploadProgress(percent);
+          }
+        },
+      }),
 
-    // Upload file
-    upload: async (workspaceId, formData, onUploadProgress) => {
-      try {
-        const response = await apiClient.post(`/workspaces/${workspaceId}/files/upload`, formData, {
-          headers: {
-            'Content-Type': 'multipart/form-data',
-          },
-          onUploadProgress: (progressEvent) => {
-            if (onUploadProgress) {
-              const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
-              onUploadProgress(percentCompleted);
-            }
-          },
-        });
-        return response;
-      } catch (error) {
-        throw error;
-      }
-    },
+    download: async (fileId) =>
+      apiClient.get(`/files/${fileId}/download`, { responseType: "blob" }),
 
-    // Download file
-    download: async (fileId) => {
-      try {
-        const response = await apiClient.get(`/files/${fileId}/download`, {
-          responseType: 'blob',
-        });
-        return response;
-      } catch (error) {
-        throw error;
-      }
-    },
-
-    // Get file versions
-    getVersions: async (fileId) => {
-      try {
-        const response = await apiClient.get(`/files/${fileId}/versions`);
-        return response.versions || [];
-      } catch (error) {
-        throw error;
-      }
-    },
-
-    // Delete file
-    delete: async (fileId) => {
-      try {
-        const response = await apiClient.delete(`/files/${fileId}`);
-        return response;
-      } catch (error) {
-        throw error;
-      }
-    },
+    delete: async (fileId) => apiClient.delete(`/files/${fileId}`),
   },
 
-  // ==================== MEMBER API ====================
+  // ==================== MEMBERS ====================
   members: {
-    // Get workspace members
     getByWorkspace: async (workspaceId) => {
-      try {
-        const response = await apiClient.get(`/workspaces/${workspaceId}/members`);
-        return response.members || [];
-      } catch (error) {
-        throw error;
-      }
+      const res = await apiClient.get(`/workspaces/${workspaceId}/members`);
+      return res.members || [];
     },
 
-    // Invite member to workspace
-    invite: async (workspaceId, memberData) => {
-      try {
-        const response = await apiClient.post(`/workspaces/${workspaceId}/members/invite`, memberData);
-        return response;
-      } catch (error) {
-        throw error;
-      }
-    },
+    invite: async (workspaceId, data) =>
+      // ✅ Correct endpoint (backend uses /invite)
+      apiClient.post(`/workspaces/${workspaceId}/invite`, data),
 
-    // Update member role
-    updateRole: async (workspaceId, memberId, role) => {
-      try {
-        const response = await apiClient.patch(`/workspaces/${workspaceId}/members/${memberId}/role`, { role });
-        return response;
-      } catch (error) {
-        throw error;
-      }
-    },
+    updateRole: async (workspaceId, memberId, role) =>
+      apiClient.patch(`/workspaces/${workspaceId}/members/${memberId}/role`, {
+        role,
+      }),
 
-    // Remove member from workspace
-    remove: async (workspaceId, memberId) => {
-      try {
-        const response = await apiClient.delete(`/workspaces/${workspaceId}/members/${memberId}`);
-        return response;
-      } catch (error) {
-        throw error;
-      }
-    },
+    remove: async (workspaceId, memberId) =>
+      apiClient.delete(`/workspaces/${workspaceId}/members/${memberId}`),
   },
 
-  // ==================== NOTIFICATION API ====================
+  // ==================== NOTIFICATIONS ====================
   notifications: {
-    // Get all notifications
     getAll: async () => {
-      try {
-        const response = await apiClient.get('/notifications');
-        return response.notifications || [];
-      } catch (error) {
-        throw error;
-      }
+      const res = await apiClient.get("/notifications");
+      return res.notifications || [];
     },
 
-    // Mark notification as read
-    markAsRead: async (notificationId) => {
-      try {
-        const response = await apiClient.patch(`/notifications/${notificationId}/read`);
-        return response;
-      } catch (error) {
-        throw error;
-      }
-    },
+    markAsRead: async (notificationId) =>
+      apiClient.patch(`/notifications/${notificationId}/read`),
 
-    // Mark all notifications as read
-    markAllAsRead: async () => {
-      try {
-        const response = await apiClient.patch('/notifications/read-all');
-        return response;
-      } catch (error) {
-        throw error;
-      }
-    },
+    markAllAsRead: async () =>
+      apiClient.patch("/notifications/read-all"),
 
-    // Delete notification
-    delete: async (notificationId) => {
-      try {
-        const response = await apiClient.delete(`/notifications/${notificationId}`);
-        return response;
-      } catch (error) {
-        throw error;
-      }
-    },
+    delete: async (notificationId) =>
+      apiClient.delete(`/notifications/${notificationId}`),
   },
 };
 
 export default api;
+
+

@@ -1,3 +1,6 @@
+
+// Members.jsx
+
 import React, { useState, useEffect } from 'react';
 import MemberCard from './MemberCard';
 import InviteMemberModal from '../../components/modals/InviteMemberModal';
@@ -22,8 +25,22 @@ function Members({ workspaceId }) {
   const loadMembers = async () => {
     setLoading(true);
     try {
-      const membersData = await api.members.getByWorkspace(workspaceId);
-      setMembers(membersData);
+      // ✅ Fetch data properly
+      const response = await api.members.getByWorkspace(workspaceId);
+      if (response && response.members) {
+        // ✅ Map to frontend-friendly structure
+        const formatted = response.members.map(m => ({
+          id: m.userId._id,
+          name: m.userId.name,
+          email: m.userId.email,
+          avatar: m.userId.avatar,
+          role: m.role,
+          status: m.userId.isActive ? 'online' : 'offline'
+        }));
+        setMembers(formatted);
+      } else {
+        setMembers([]);
+      }
     } catch (error) {
       console.error('Error loading members:', error);
       toast.error('Failed to load members');
@@ -32,19 +49,14 @@ function Members({ workspaceId }) {
     }
   };
 
-  const handleInviteMember = () => {
-    setShowInviteModal(true);
-  };
-
+  const handleInviteMember = () => setShowInviteModal(true);
   const handleMemberInvited = () => {
     loadMembers();
     setShowInviteModal(false);
   };
 
   const handleRemoveMember = async (memberId) => {
-    if (!window.confirm('Are you sure you want to remove this member?')) {
-      return;
-    }
+    if (!window.confirm('Are you sure you want to remove this member?')) return;
 
     try {
       await api.members.remove(workspaceId, memberId);
@@ -70,15 +82,16 @@ function Members({ workspaceId }) {
   };
 
   const filteredMembers = members.filter(member => {
-    const matchesSearch = 
+    const matchesSearch =
       member.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       member.email.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesFilter = filterRole === 'all' || member.role.toLowerCase() === filterRole.toLowerCase();
+    const matchesFilter =
+      filterRole === 'all' || member.role.toLowerCase() === filterRole.toLowerCase();
     return matchesSearch && matchesFilter;
   });
 
   const onlineCount = members.filter(m => m.status === 'online').length;
-  const isAdmin = user?.role === 'admin';
+  const isAdmin = user?.role === 'Admin' || user?.role === 'admin';
 
   if (loading) {
     return (
@@ -111,7 +124,7 @@ function Members({ workspaceId }) {
                     </div>
                   </div>
                 </div>
-                
+
                 {isAdmin && (
                   <div className="col-12 col-md-6">
                     <div className="members-actions-row">
@@ -135,7 +148,6 @@ function Members({ workspaceId }) {
           <div className="col-12">
             <div className="members-toolbar">
               <div className="row g-3">
-                {/* Search */}
                 <div className="col-12 col-md-6 col-lg-8">
                   <div className="members-search-wrapper">
                     <Search size={18} className="members-search-icon" />
@@ -149,7 +161,6 @@ function Members({ workspaceId }) {
                   </div>
                 </div>
 
-                {/* Filter by Role */}
                 <div className="col-12 col-md-6 col-lg-4">
                   <div className="members-filter-wrapper">
                     <Filter size={18} />
@@ -199,7 +210,7 @@ function Members({ workspaceId }) {
                     key={member.id}
                     member={member}
                     isAdmin={isAdmin}
-                    currentUserId={user?.id}
+                    currentUserId={user?._id}
                     onRemove={() => handleRemoveMember(member.id)}
                     onUpdateRole={(role) => handleUpdateRole(member.id, role)}
                   />
@@ -210,7 +221,7 @@ function Members({ workspaceId }) {
         </div>
       </div>
 
-      {/* Invite Member Modal */}
+      {/* Invite Modal */}
       {showInviteModal && (
         <InviteMemberModal
           workspaceId={workspaceId}

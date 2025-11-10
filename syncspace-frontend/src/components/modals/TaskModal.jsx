@@ -1,10 +1,14 @@
+
+
+// syncspace-frontend/src/components/modals/TaskModal.jsx
+
 import React, { useState, useEffect } from 'react';
 import { X, CheckSquare, Calendar, User, Tag } from 'lucide-react';
 import api from '../../services/api';
 import { toast } from 'react-toastify';
 import '../../styles/App.css';
 
-function TaskModal({ task, onClose, onSave }) {
+function TaskModal({ task, onClose, onSave, projectId }) {
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -16,86 +20,104 @@ function TaskModal({ task, onClose, onSave }) {
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
 
+  // Populate form when editing
   useEffect(() => {
     if (task) {
       setFormData({
         title: task.title || '',
         description: task.description || '',
-        assignee: task.assignee || '',
-        dueDate: task.dueDate || '',
+        assignee: task.assignee?.name || '',
+        dueDate: task.dueDate ? task.dueDate.split('T')[0] : '',
         priority: task.priority || 'medium',
         status: task.status || 'todo'
+      });
+    } else {
+      setFormData({
+        title: '',
+        description: '',
+        assignee: '',
+        dueDate: '',
+        priority: 'medium',
+        status: 'todo'
       });
     }
   }, [task]);
 
+  // -------------------- HANDLE INPUT --------------------
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
-    
-    if (errors[name]) {
-      setErrors(prev => ({
-        ...prev,
-        [name]: ''
-      }));
-    }
+    setFormData(prev => ({ ...prev, [name]: value }));
+    if (errors[name]) setErrors(prev => ({ ...prev, [name]: '' }));
   };
 
+  // -------------------- VALIDATION --------------------
   const validateForm = () => {
     const newErrors = {};
-
-    if (!formData.title.trim()) {
-      newErrors.title = 'Task title is required';
+    if (!formData.title.trim()) newErrors.title = 'Task title is required';
+    if (formData.dueDate) {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      if (new Date(formData.dueDate) < today)
+        newErrors.dueDate = 'Due date cannot be in the past';
     }
-
-    if (formData.dueDate && new Date(formData.dueDate) < new Date()) {
-      newErrors.dueDate = 'Due date cannot be in the past';
-    }
-
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
+  // -------------------- SUBMIT --------------------
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (!validateForm()) {
+    if (!validateForm()) return;
+
+    if (!projectId || projectId.length !== 24) {
+      toast.error('❌ Invalid Project ID. Please reload workspace.');
+      console.error('❌ TaskModal Error: Invalid or missing projectId ->', projectId);
       return;
     }
+
+    const payload = {
+      ...formData,
+      assignee: formData.assignee?.trim() ? formData.assignee.trim() : null,
+    };
+
+    console.log("📦 Submitting Task for Project:", projectId, "| Payload:", payload);
 
     setLoading(true);
     try {
       if (task) {
-        await api.tasks.update(task.id, formData);
-        toast.success('Task updated successfully');
+        await api.tasks.update(task._id || task.id, payload);
+        toast.success('✅ Task updated successfully');
       } else {
-        const projectId = 1; // This should come from context
-        await api.tasks.create(projectId, formData);
-        toast.success('Task created successfully');
+        const res = await api.tasks.create(projectId, payload);
+        if (!res || res.success === false) {
+          throw new Error(res?.message || 'Failed to create task');
+        }
+        toast.success('✅ Task created successfully');
       }
-      onSave();
+
+      if (onSave) onSave();
     } catch (error) {
-      console.error('Error saving task:', error);
-      toast.error('Failed to save task');
+      console.error('❌ Error saving task:', error);
+      toast.error(error?.response?.data?.message || 'Failed to save task');
     } finally {
       setLoading(false);
     }
   };
 
+  // -------------------- RENDER --------------------
   return (
     <div className="modal-overlay-wrapper" onClick={onClose}>
-      <div className="modal-content-container modal-content-large" onClick={(e) => e.stopPropagation()}>
+      <div
+        className="modal-content-container modal-content-large"
+        onClick={(e) => e.stopPropagation()}
+      >
         <div className="container-fluid">
           {/* Modal Header */}
           <div className="row">
             <div className="col-12">
               <div className="modal-header-section">
-                <div className="modal-header-icon">
-                  <CheckSquare size={24} />
-                </div>
+                <div className="modal-header-icon"><CheckSquare size={24} /></div>
                 <h3 className="modal-header-title">
                   {task ? 'Edit Task' : 'Create New Task'}
                 </h3>
@@ -112,12 +134,11 @@ function TaskModal({ task, onClose, onSave }) {
               <div className="col-12">
                 <div className="modal-body-section">
                   <div className="row g-3">
-                    {/* Task Title */}
+                    {/* Title */}
                     <div className="col-12">
                       <div className="modal-form-group">
                         <label htmlFor="title" className="modal-form-label">
-                          <CheckSquare size={16} />
-                          Task Title <span className="modal-form-required">*</span>
+                          <CheckSquare size={16} /> Task Title <span className="modal-form-required">*</span>
                         </label>
                         <input
                           id="title"
@@ -129,18 +150,14 @@ function TaskModal({ task, onClose, onSave }) {
                           className={`modal-form-input ${errors.title ? 'modal-form-input-error' : ''}`}
                           disabled={loading}
                         />
-                        {errors.title && (
-                          <span className="modal-form-error-text">{errors.title}</span>
-                        )}
+                        {errors.title && <span className="modal-form-error-text">{errors.title}</span>}
                       </div>
                     </div>
 
                     {/* Description */}
                     <div className="col-12">
                       <div className="modal-form-group">
-                        <label htmlFor="description" className="modal-form-label">
-                          Description
-                        </label>
+                        <label htmlFor="description" className="modal-form-label">Description</label>
                         <textarea
                           id="description"
                           name="description"
@@ -154,12 +171,11 @@ function TaskModal({ task, onClose, onSave }) {
                       </div>
                     </div>
 
-                    {/* Assignee and Due Date */}
+                    {/* Assignee & Due Date */}
                     <div className="col-12 col-md-6">
                       <div className="modal-form-group">
                         <label htmlFor="assignee" className="modal-form-label">
-                          <User size={16} />
-                          Assignee
+                          <User size={16} /> Assignee
                         </label>
                         <input
                           id="assignee"
@@ -177,8 +193,7 @@ function TaskModal({ task, onClose, onSave }) {
                     <div className="col-12 col-md-6">
                       <div className="modal-form-group">
                         <label htmlFor="dueDate" className="modal-form-label">
-                          <Calendar size={16} />
-                          Due Date
+                          <Calendar size={16} /> Due Date
                         </label>
                         <input
                           id="dueDate"
@@ -189,19 +204,14 @@ function TaskModal({ task, onClose, onSave }) {
                           className={`modal-form-input ${errors.dueDate ? 'modal-form-input-error' : ''}`}
                           disabled={loading}
                         />
-                        {errors.dueDate && (
-                          <span className="modal-form-error-text">{errors.dueDate}</span>
-                        )}
+                        {errors.dueDate && <span className="modal-form-error-text">{errors.dueDate}</span>}
                       </div>
                     </div>
 
-                    {/* Priority and Status */}
+                    {/* Priority & Status */}
                     <div className="col-12 col-md-6">
                       <div className="modal-form-group">
-                        <label htmlFor="priority" className="modal-form-label">
-                          <Tag size={16} />
-                          Priority
-                        </label>
+                        <label htmlFor="priority" className="modal-form-label"><Tag size={16} /> Priority</label>
                         <select
                           id="priority"
                           name="priority"
@@ -219,9 +229,7 @@ function TaskModal({ task, onClose, onSave }) {
 
                     <div className="col-12 col-md-6">
                       <div className="modal-form-group">
-                        <label htmlFor="status" className="modal-form-label">
-                          Status
-                        </label>
+                        <label htmlFor="status" className="modal-form-label">Status</label>
                         <select
                           id="status"
                           name="status"
@@ -241,31 +249,13 @@ function TaskModal({ task, onClose, onSave }) {
               </div>
             </div>
 
-            {/* Modal Footer */}
+            {/* Footer */}
             <div className="row">
               <div className="col-12">
                 <div className="modal-footer-section">
-                  <button
-                    type="button"
-                    onClick={onClose}
-                    className="modal-btn-secondary"
-                    disabled={loading}
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    className="modal-btn-primary"
-                    disabled={loading}
-                  >
-                    {loading ? (
-                      <>
-                        <span className="modal-btn-spinner"></span>
-                        Saving...
-                      </>
-                    ) : (
-                      task ? 'Update Task' : 'Create Task'
-                    )}
+                  <button type="button" onClick={onClose} className="modal-btn-secondary" disabled={loading}>Cancel</button>
+                  <button type="submit" className="modal-btn-primary" disabled={loading}>
+                    {loading ? (<><span className="modal-btn-spinner"></span> Saving...</>) : (task ? 'Update Task' : 'Create Task')}
                   </button>
                 </div>
               </div>

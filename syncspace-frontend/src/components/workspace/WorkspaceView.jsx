@@ -1,3 +1,6 @@
+
+// src/components/workspace/WorkspaceView.jsx
+
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { useApp } from '../../context/AppContext';
@@ -20,14 +23,13 @@ function WorkspaceView() {
 
   useEffect(() => {
     loadWorkspaceData();
-    
-    // Initialize socket connection for workspace
+
+    // Socket setup
     const socket = socketService.initialize();
     if (socket && workspaceId) {
       socketService.joinWorkspace(workspaceId);
     }
 
-    // Cleanup on unmount
     return () => {
       if (socket && workspaceId) {
         socketService.leaveWorkspace(workspaceId);
@@ -38,15 +40,12 @@ function WorkspaceView() {
   const loadWorkspaceData = async () => {
     setLoading(true);
     try {
-      // Find workspace from context or fetch from API
-      const workspace = workspaces.find(ws => ws.id === parseInt(workspaceId));
-      
+      // Fix: don’t parse workspaceId — keep as string (MongoDB ObjectId)
+      const workspace = workspaces.find(ws => ws.id === workspaceId || ws._id === workspaceId);
       if (workspace) {
         setSelectedWorkspace(workspace);
       } else {
-        // Fetch from API if not in context
-        // const response = await api.workspaces.getById(workspaceId);
-        // setSelectedWorkspace(response.workspace);
+        console.warn(`Workspace ${workspaceId} not found in context`);
       }
     } catch (error) {
       console.error('Error loading workspace:', error);
@@ -55,13 +54,8 @@ function WorkspaceView() {
     }
   };
 
-  const handleTabChange = (tab) => {
-    setActiveTab(tab);
-  };
-
-  const handleSidebarToggle = () => {
-    setSidebarOpen(!sidebarOpen);
-  };
+  const handleTabChange = (tab) => setActiveTab(tab);
+  const handleSidebarToggle = () => setSidebarOpen(!sidebarOpen);
 
   if (loading) {
     return (
@@ -81,7 +75,6 @@ function WorkspaceView() {
     );
   }
 
-
   return (
     <div className="workspace-view-container">
       <Navbar onMenuToggle={handleSidebarToggle} isSidebarOpen={sidebarOpen} />
@@ -97,11 +90,21 @@ function WorkspaceView() {
 
         <main className="workspace-main-content">
           <div className="workspace-content-container">
-            {activeTab === 'kanban' && <KanbanBoard workspaceId={workspaceId} />}
-            {activeTab === 'documents' && <DocumentEditor workspaceId={workspaceId} />}
-            {activeTab === 'chat' && <Chat workspaceId={workspaceId} />}
-            {activeTab === 'files' && <FileManager workspaceId={workspaceId} />}
-            {activeTab === 'members' && <Members workspaceId={workspaceId} />}
+            {activeTab === 'kanban' && (
+              <KanbanBoard workspaceId={workspaceId} />
+            )}
+            {activeTab === 'documents' && (
+              <DocumentEditor workspaceId={workspaceId} />
+            )}
+            {activeTab === 'chat' && (
+              <Chat workspaceId={workspaceId} />
+            )}
+            {activeTab === 'files' && (
+              <FileManager workspaceId={workspaceId} />
+            )}
+            {activeTab === 'members' && (
+              <Members workspaceId={workspaceId} />
+            )}
           </div>
         </main>
       </div>

@@ -1,3 +1,5 @@
+// syncspace-frontend/src/context/AppContext.jsx
+
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
@@ -88,25 +90,65 @@ export function AppProvider({ children }) {
     }
   };
 
-  const register = async (name, email, password) => {
-    try {
-      const response = await api.auth.register(name, email, password);
+  // const register = async (name, email, password, confirmPassword) => {
+  //   try {
+  //     const response = await api.auth.register(name, email, password, confirmPassword);
       
-      if (response.success) {
-        localStorage.setItem('syncspace_token', response.token);
-        setUser(response.user);
-        toast.success('Account created successfully!');
-        return { success: true };
-      } else {
-        toast.error(response.message || 'Registration failed');
-        return { success: false, error: response.message };
-      }
-    } catch (error) {
-      const errorMessage = error.response?.data?.message || 'Registration failed. Please try again.';
-      toast.error(errorMessage);
-      return { success: false, error: errorMessage };
+  //     if (response.success) {
+  //       localStorage.setItem('syncspace_token', response.token);
+  //       setUser(response.user);
+  //       toast.success('Account created successfully!');
+  //       return { success: true };
+  //     } else {
+  //       toast.error(response.message || 'Registration failed');
+  //       return { success: false, error: response.message };
+  //     }
+  //   } catch (error) {
+  //     const errorMessage = error.response?.data?.message || 'Registration failed. Please try again.';
+  //     toast.error(errorMessage);
+  //     return { success: false, error: errorMessage };
+  //   }
+  // };
+
+  const register = async (name, email, password, confirmPassword) => {
+  try {
+    console.log("🧩 Sending registration data:", { name, email, password, confirmPassword });
+
+    // Axios interceptor already returns response.data
+    const response = await api.post('/auth/register', {
+      name,
+      email,
+      password,
+      confirmPassword,
+    });
+
+    console.log("✅ Register API Response:", response);
+
+    if (response.success) {
+      // ✅ Save token to localStorage
+      localStorage.setItem('syncspace_token', response.token);
+
+      // ✅ Save user for persistent session
+      localStorage.setItem('syncspace_user', JSON.stringify(response.user));
+
+      // ✅ Update context
+      setUser(response.user);
+
+      toast.success('Account created successfully!');
+      return { success: true };
+    } else {
+      toast.error(response.message || 'Registration failed');
+      return { success: false, error: response.message };
     }
-  };
+  } catch (error) {
+    console.error("❌ Register API Error:", error.response?.data || error.message);
+    const errorMessage =
+      error.response?.data?.message || 'Registration failed. Please try again.';
+    toast.error(errorMessage);
+    return { success: false, error: errorMessage };
+  }
+};
+
 
   const logout = async () => {
     try {
@@ -261,3 +303,5 @@ export function AppProvider({ children }) {
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
 }
+
+
